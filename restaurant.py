@@ -2,6 +2,15 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import math
+from pymongo import MongoClient
+import certifi
+from dotenv import load_dotenv
+import os
+
+# MongoDB connection
+client = MongoClient(os.getenv("MONGODB_URI"),  tls=True ,tlsCAFile=certifi.where())
+db = client.get_database('michelin_restaurant')  # Replace with your database name
+collection = db.get_collection('restaurants')  # Replace with your collection name
 
 # Set up the URL and headers
 base_url="https://guide.michelin.com"
@@ -52,4 +61,10 @@ for page in range(1, total_pages + 1):
             restaurant_name = str(data.find('h1', class_='data-sheet__title').contents[0]);
             restaurant_addr = str(data.find('div', class_='data-sheet__block--text').contents[0]).strip()
             restautrant_img = str(restaurant_page.find('div', class_='masthead__gallery-image').get('data-bg'))
-
+            restaurant_data = {
+            "name": restaurant_name,
+            "address": restaurant_addr,
+            "image_url": restautrant_img
+            }
+            # Insert the data into MongoDB
+            collection.insert_one(restaurant_data)
