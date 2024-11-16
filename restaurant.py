@@ -5,8 +5,11 @@ import math
 from pymongo import MongoClient
 import certifi
 import os
+from dotenv import load_dotenv
+
 
 # MongoDB connection
+load_dotenv()
 client = MongoClient(os.getenv("MONGODB_URI"),  tls=True ,tlsCAFile=certifi.where())
 db = client.get_database('michelin_restaurant')  # Replace with your database name
 collection = db.get_collection('restaurants')  # Replace with your collection name
@@ -17,7 +20,6 @@ url = "https://guide.michelin.com/tw/zh_TW/restaurants"
 
 restaurant_type= ["3-stars-michelin","2-stars-michelin","1-star-michelin","bib-gourmand","the-plate-michelin"]
 for t in range(0,len(restaurant_type)):
-    print(url+"/"+restaurant_type[t]+"?q=taiwan")
     # Request the page content
     #response = requests.get(url, headers=headers)
     response = requests.get(url+"/"+restaurant_type[t]+"?q=taiwan")
@@ -29,7 +31,6 @@ for t in range(0,len(restaurant_type)):
     if("," in search_count):
         search_count = search_count.replace(",", "")
     # Replace with the actual total count of results
-    print(search_count)
     results_per_page = 20
     total_pages = math.ceil(int(search_count) / results_per_page)
 
@@ -39,7 +40,7 @@ for t in range(0,len(restaurant_type)):
             page_url = f"{url}/{restaurant_type[t]}/page/{page}?q=taiwan"
         else:
             page_url = url+"/"+restaurant_type[t]+"?q=taiwan" 
-        '''
+        
         # Request the page content
         response = requests.get(page_url)
         response.raise_for_status()  # Check for errors
@@ -71,8 +72,10 @@ for t in range(0,len(restaurant_type)):
                 "address": restaurant_addr,
                 "image_url": restautrant_img,
                 "michelin_type":restaurant_type[t],
+                "comment":[],
                 "description":""
                 }
                 # Insert the data into MongoDB
-                #collection.insert_one(restaurant_data)
-                '''
+                collection.insert_one(restaurant_data)
+    print(url+"/"+restaurant_type[t]+"?q=taiwan")
+  
