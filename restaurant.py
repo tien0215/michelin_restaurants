@@ -14,32 +14,41 @@ client = MongoClient(os.getenv("MONGODB_URI"),  tls=True ,tlsCAFile=certifi.wher
 db = client.get_database('michelin_restaurant')  # Replace with your database name
 collection = db.get_collection('restaurants')  # Replace with your collection name
 
+# https://guide.michelin.com/en/tw/restaurants (Restaurant physically located in Taiwan.)
+# https://guide.michelin.com/en/tw/restaurants/page/2
+# https://guide.michelin.com/tw/zh_TW/restaurants (restaurant that related to Taiwan topic, usually more restaurant)
+# https://guide.michelin.com/tw/zh_TW/restaurants/page/2?q=taiwan
+
 # Set up the URL and headers
 base_url="https://guide.michelin.com"
-url = "https://guide.michelin.com/tw/zh_TW/restaurants"
-
+url = "https://guide.michelin.com/en/tw/restaurants"
+index =0
 restaurant_type= ["3-stars-michelin","2-stars-michelin","1-star-michelin","bib-gourmand","the-plate-michelin"]
 for t in range(0,len(restaurant_type)):
     # Request the page content
     #response = requests.get(url, headers=headers)
-    response = requests.get(url+"/"+restaurant_type[t]+"?q=taiwan")
+    response = requests.get(url+"/"+restaurant_type[t])
     response.raise_for_status()  # Check for errors
     # Parse the page with BeautifulSoup
     soup = BeautifulSoup(response.text, 'html.parser')
     search_count_text = soup.find('div', class_='search-results__count').find('div', class_='search-results__stats').find('h1').get_text()
-    search_count = search_count_text.split("共")[1].split("個")[0].strip()
+    print(search_count_text)
+    search_count = search_count_text.split("of")[1].split(" ")[1].strip()
+    print("-")
+    print(search_count)
+    print("#")
     if("," in search_count):
         search_count = search_count.replace(",", "")
     # Replace with the actual total count of results
     results_per_page = 20
     total_pages = math.ceil(int(search_count) / results_per_page)
-
+    
     for page in range(1, total_pages + 1):
         # Update the URL with the current page number if pagination uses a "page" parameter
         if(page != 1): 
-            page_url = f"{url}/{restaurant_type[t]}/page/{page}?q=taiwan"
+            page_url = f"{url}/{restaurant_type[t]}/page/{page}"
         else:
-            page_url = url+"/"+restaurant_type[t]+"?q=taiwan" 
+            page_url = url+"/"+restaurant_type[t] 
         
         # Request the page content
         response = requests.get(page_url)
@@ -64,18 +73,26 @@ for t in range(0,len(restaurant_type)):
                 restaurant_page_response.raise_for_status()
                 restaurant_page = BeautifulSoup(restaurant_page_response.text, 'html.parser')
                 data = restaurant_page.find('div', class_='restaurant-details').find('section', class_='section section-main d-block d-lg-none').find('div', class_='data-sheet')
-                restaurant_name = str(data.find('h1', class_='data-sheet__title').contents[0]);
+                restaurant_name = str(data.find('h1', class_='data-sheet__title').contents[0])
                 restaurant_addr = str(data.find('div', class_='data-sheet__block--text').contents[0]).strip()
-                restautrant_img = str(restaurant_page.find('div', class_='masthead__gallery-image').get('data-bg'))
+                restaurant_imgs = restaurant_page.find('div', class_='masthead__gallery-image').find_all('div', class_='masthead__gallery-image-item')
+                restaurant_description = restaurant_page.find('div',class_='data-sheet__description').find('p')
+                if(restaurant_description is None):
+                    restaurant_description= restaurant_page.find('div',class_='data-sheet__description')
+                img_arr = []
+                for img in restaurant_imgs:
+                    img_url = img.find('img').get('ci-src');
+                    img_arr.append(img_url)
+                restaurant_description = str(restaurant_description.contents[0]).strip()  
                 restaurant_data = {
                 "name": restaurant_name,
                 "address": restaurant_addr,
-                "image_url": restautrant_img,
+                "image_url": img_arr,
                 "michelin_type":restaurant_type[t],
                 "comment":[],
-                "description":""
+                "description":restaurant_description
                 }
+                index +=1
                 # Insert the data into MongoDB
                 collection.insert_one(restaurant_data)
-    print(url+"/"+restaurant_type[t]+"?q=taiwan")
-  
+print(index)    
