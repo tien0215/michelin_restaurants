@@ -32,11 +32,8 @@ for t in range(0,len(restaurant_type)):
     # Parse the page with BeautifulSoup
     soup = BeautifulSoup(response.text, 'html.parser')
     search_count_text = soup.find('div', class_='search-results__count').find('div', class_='search-results__stats').find('h1').get_text()
-    print(search_count_text)
     search_count = search_count_text.split("of")[1].split(" ")[1].strip()
-    print("-")
-    print(search_count)
-    print("#")
+
     if("," in search_count):
         search_count = search_count.replace(",", "")
     # Replace with the actual total count of results
@@ -95,4 +92,4 @@ for t in range(0,len(restaurant_type)):
                 index +=1
                 # Insert the data into MongoDB
                 collection.insert_one(restaurant_data)
-print(index)    
+   
